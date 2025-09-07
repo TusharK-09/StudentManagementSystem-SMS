@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Teacher Panel</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="container">
+    <h1>Teacher Panel</h1>
+    <p><strong>Welcome:</strong> <span id="teacherName"></span></p>
+
+    <button onclick="loadStudents()">Load All Students</button>
+    <div id="studentList"></div>
+
+    <h3>Add Notes</h3>
+    <input type="text" id="username" placeholder="Student Username">
+    <input type="text" id="notes" placeholder="Notes">
+    <button onclick="addNotes()">Add Notes</button>
+    <p id="message"></p>
+
+    <button onclick="logout()">Logout</button>
+</div>
+
+<script>
+    function loadTeacherInfo() {
+      const username = sessionStorage.getItem('username');
+      if (!username) {
+        window.location.href = "login.html";
+        return;
+      }
+      document.getElementById('teacherName').innerText = username;
+    }
+
+    async function loadStudents() {
+      const response = await fetch('/api/teacher/allStudents');
+      const students = await response.json();
+      let html = "<ul>";
+      students.forEach(s => {
+        html += `<li>${s.username} - Notes: ${s.notes || "No notes"}</li>`;
+      });
+      html += "</ul>";
+      document.getElementById('studentList').innerHTML = html;
+    }
+
+    async function addNotes() {
+      const username = document.getElementById('username').value;
+      const notes = document.getElementById('notes').value;
+
+      const response = await fetch('/api/teacher/addNotes', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, notes })
+      });
+
+      const result = await response.text();
+      document.getElementById('message').innerText = result;
+    }
+
+    function logout() {
+      sessionStorage.clear();
+      window.location.href = "LoginPanel.html";
+    }
+
+    loadTeacherInfo();
+</script>
+</body>
+</html>

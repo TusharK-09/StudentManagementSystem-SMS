@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Login</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="container">
+    <h1>Login</h1>
+    <select id="role">
+        <option value="STUDENT">Student</option>
+        <option value="TEACHER">Teacher</option>
+    </select>
+    <input type="text" id="username" placeholder="Enter username">
+    <input type="password" id="password" placeholder="Enter password">
+    <button onclick="login()">Login</button>
+    <p id="message"></p>
+</div>
+
+<script>
+    async function login() {
+      const role = document.getElementById('role').value;
+      const username = document.getElementById('username').value;
+      const password = document.getElementById('password').value;
+
+      const response = await fetch('/api/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password })
+      });
+
+      if (response.ok) {
+        // Save role + username to sessionStorage so next page can use it
+        sessionStorage.setItem('role', role);
+        sessionStorage.setItem('username', username);
+
+        if (role === "TEACHER") {
+          window.location.href = "TeacherPanel.html";
+        } else {
+          window.location.href = "StudentPanel.html";
+        }
+      } else {
+        document.getElementById('message').innerText = "Invalid credentials!";
+      }
+    }
+</script>
+</body>
+</html>
