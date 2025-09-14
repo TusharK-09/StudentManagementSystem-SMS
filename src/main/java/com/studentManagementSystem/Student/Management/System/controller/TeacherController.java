@@ -40,7 +40,7 @@ public class TeacherController {
                 return user;
             }
         }
-        return null; // you can also throw custom exception later
+        return null; // on failing the request send fail code http request
     }
 
 }

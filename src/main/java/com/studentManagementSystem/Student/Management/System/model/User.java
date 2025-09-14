@@ -27,7 +27,7 @@ public class User {
         this.cgpa = cgpa;
     }
 
-    //for Teacher
+    //constructor for Teacher attributes -> have office , subject , position
     public User(String username, String password, String role , String subject , String position , String office ) {
         this.username = username;
         this.password = password;
