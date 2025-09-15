@@ -33,14 +33,21 @@ public class TeacherController {
     }
 
     // Search student by username
-    @GetMapping("/allStudents/{username}")
+    @GetMapping("/searchStudent/{username}")
     public User searchStudent(@PathVariable String username) {
         for (User user : userService.getStudents()) {
             if (user.getUsername().equalsIgnoreCase(username)) {
                 return user;
             }
         }
-        return null; // on failing the request send fail code http request
+        return null;
+    }
+
+    //add student
+    @PostMapping("/addStudent")
+    public String addStudent(@RequestBody User student) {
+        userService.addStudent(student);
+        return "Student added: " + student.getUsername();
     }
 
 }

@@ -17,6 +17,11 @@ public class User {
     public String office;
     public String subject;
 
+    //for json mapping
+    public User(){
+
+    }
+
     //constructor for username , password , role - > Student
     public User(String username, String password, String role , String course , int batch , float cgpa) {
         this.username = username;
