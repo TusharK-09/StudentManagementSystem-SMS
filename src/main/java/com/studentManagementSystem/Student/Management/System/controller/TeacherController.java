@@ -1,53 +1,63 @@
 package com.studentManagementSystem.Student.Management.System.controller;
 
-import com.studentManagementSystem.Student.Management.System.dto.LoginRequest;
 import com.studentManagementSystem.Student.Management.System.dto.NotesRequest;
-import com.studentManagementSystem.Student.Management.System.model.User;
-import com.studentManagementSystem.Student.Management.System.service.UserService;
+import com.studentManagementSystem.Student.Management.System.model.StudentModel;
+import com.studentManagementSystem.Student.Management.System.model.TeacherModel;
+import com.studentManagementSystem.Student.Management.System.service.TeacherService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @RestController
-@RequestMapping("/api/teacher")
+@RequestMapping("/sms/teacher")
 public class TeacherController {
 
-    private final UserService userService;
+    @Autowired
+    private TeacherService teacherService;
 
-    //dependency injection
-    public TeacherController (UserService userService){
-        this.userService =  userService;
-    }
-
-    //Get all students
-    @GetMapping("/allStudents")
-    public List<User> getStudents(){
-        return userService.getStudents();
-    }
-
-    //Add Notes to a username
-    @PostMapping("/addNotes")
-    public String addNotes(@RequestBody NotesRequest notesRequest){
-        userService.addNotes(notesRequest.getUsername() , notesRequest.getNotes());
-        return "Notes added for : " + notesRequest.getUsername();
-    }
-
-    // Search student by username
-    @GetMapping("/searchStudent/{username}")
-    public User searchStudent(@PathVariable String username) {
-        for (User user : userService.getStudents()) {
-            if (user.getUsername().equalsIgnoreCase(username)) {
-                return user;
-            }
+    //view of teacher dashboard -> profile + assigned students
+    @GetMapping("/dashboard/{username}")
+    public ResponseEntity<?> getDashboard(@PathVariable String username) {
+        TeacherModel teacher = teacherService.getProfile(username);
+        if (teacher == null) {
+            return ResponseEntity.notFound().build();
         }
-        return null;
+
+        List<StudentModel> students = teacherService.getAssignedStudents(teacher.getId());
+        Map<String, Object> dashboard = new HashMap<>();
+        dashboard.put("Profile", teacher);
+        dashboard.put("Students", students);
+
+        return ResponseEntity.ok(dashboard);
     }
 
-    //add student
-    @PostMapping("/addStudent")
-    public String addStudent(@RequestBody User student) {
-        userService.addStudent(student);
-        return "Student added: " + student.getUsername();
-    }
+    //add notes to a student
+    @PostMapping("/notes")
+    public ResponseEntity<String> giveNotes(@RequestParam String teacherUsername, @RequestParam String rollNumber, @RequestBody NotesRequest notesRequest) {
 
+        boolean success = teacherService.giveNotes(teacherUsername, rollNumber, notesRequest.getNotes());
+        if (success) {
+            return ResponseEntity.ok("Notes updated successfully.");
+        } else {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body("You are not allowed to update notes for this student.");
+        }
+    }
+    //update marks for own subject
+    @PostMapping("/marks")
+    public ResponseEntity<String> updateMarks(@RequestParam String teacherUsername , @RequestParam String rollNumber , @RequestParam int marks){
+        boolean success = teacherService.updateMarks(teacherUsername, rollNumber, marks);
+
+        if (success) {
+            return ResponseEntity.ok("Marks updated successfully");
+        } else {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body("Cannot update marks.. either teacher or student not found, or student is not assigned to this teacher.");
+        }
+    }
 }
