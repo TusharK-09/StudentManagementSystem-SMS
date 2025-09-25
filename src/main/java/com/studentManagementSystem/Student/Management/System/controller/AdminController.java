@@ -5,13 +5,17 @@ import com.studentManagementSystem.Student.Management.System.model.StudentModel;
 import com.studentManagementSystem.Student.Management.System.model.TeacherModel;
 import com.studentManagementSystem.Student.Management.System.repository.StudentRepository;
 import com.studentManagementSystem.Student.Management.System.repository.TeacherRepository;
-import com.studentManagementSystem.Student.Management.System.service.TeacherService;
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 
 @RestController
 @RequestMapping("/admin")
@@ -22,47 +26,59 @@ public class AdminController {
     @Autowired
     private TeacherRepository teacherRepo;
 
-    // dummy admin data
-    private final String ADMIN_USERNAME = "ADMIN_USER";
-    private final String ADMIN_PASSWORD = "admin@123";
+    @Autowired
+    private PasswordEncoder passwordEncoder;
 
-    @PostMapping("/login")
-    public ResponseEntity<?> adminLogin(@RequestParam  String username ,@RequestParam String password){
-        if(username.equals(ADMIN_USERNAME) && password.equals(ADMIN_PASSWORD)){
-            return ResponseEntity.ok("Admin Logged In");
-        }
-        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid Credentials");
+    @GetMapping("/dashboard")
+    public ResponseEntity<?> getDashboardData() {
+        List<TeacherModel> teachers = teacherRepo.findAll();
+        List<StudentModel> students = studentRepo.findAll();
+
+        Map<String, Object> dashboardData = new HashMap<>();
+        dashboardData.put("teachers", teachers);
+        dashboardData.put("students", students);
+
+        return ResponseEntity.ok(dashboardData);
     }
 
-    //create a  teacher by admin
+    // --- NEW: ENDPOINT TO GET A SINGLE TEACHER'S DETAILS ---
+    @GetMapping("/teacher/{username}")
+    public ResponseEntity<TeacherModel> getTeacher(@PathVariable String username) {
+        return teacherRepo.findByUsername(username)
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
+    }
+
+    // --- NEW: ENDPOINT TO GET A SINGLE STUDENT'S DETAILS ---
+    @GetMapping("/student/{rollNumber}")
+    public ResponseEntity<StudentModel> getStudent(@PathVariable String rollNumber) {
+        return studentRepo.findByRollNumber(rollNumber)
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
+    }
+
     @PostMapping("/teacher")
-    public ResponseEntity<TeacherModel> createTeacher(@RequestBody TeacherModel teacher){
+    public ResponseEntity<TeacherModel> createTeacher(@Valid @RequestBody TeacherModel teacher){
+        if (teacher.getPassword() == null || teacher.getPassword().isEmpty()) {
+            return ResponseEntity.badRequest().build();
+        }
+        teacher.setPassword(passwordEncoder.encode(teacher.getPassword()));
         return ResponseEntity.ok(teacherRepo.save(teacher));
     }
 
 
-    //create student by admin
     @PostMapping("/student")
-    public ResponseEntity<StudentModel> createStudent(@RequestBody StudentModel student){
+    public ResponseEntity<StudentModel> createStudent(@Valid @RequestBody StudentModel student){
+        if (student.getPassword() == null || student.getPassword().isEmpty()) {
+            return ResponseEntity.badRequest().build();
+        }
+        student.setPassword(passwordEncoder.encode(student.getPassword()));
         return ResponseEntity.ok(studentRepo.save(student));
     }
 
-    //see all teacher
-    @GetMapping("/teachers")
-    public ResponseEntity<List<TeacherModel>> getAllTeachers(){
-        return ResponseEntity.ok(teacherRepo.findAll());
-    }
-
-    //see all students
-    @GetMapping("/students")
-    public ResponseEntity<List<StudentModel>> getAllStudents(){
-        return ResponseEntity.ok(studentRepo.findAll());
-    }
-
-    //assigning student to a teacher
     @PutMapping("/assign/{teacherUsername}/{studentRoll}")
-    public ResponseEntity<?> assignStudentToTeacher(@PathVariable String teacherUsername,
-                                                    @PathVariable String studentRoll) {
+    public ResponseEntity<?> assignStudentTo_Teacher(@PathVariable String teacherUsername,
+                                                     @PathVariable String studentRoll) {
         TeacherModel teacher = teacherRepo.findByUsername(teacherUsername).orElse(null);
         StudentModel student = studentRepo.findByRollNumber(studentRoll).orElse(null);
 
@@ -71,22 +87,26 @@ public class AdminController {
                     .body("Teacher or Student not found");
         }
 
-        teacher.getStudentRollNumbers().add(studentRoll);
-        TeacherModel updated = teacherRepo.save(teacher);
+        if (!teacher.getStudentRollNumbers().contains(studentRoll)) {
+            teacher.getStudentRollNumbers().add(studentRoll);
+        }
 
+        TeacherModel updated = teacherRepo.save(teacher);
         return ResponseEntity.ok(updated);
     }
 
-    //admin update student details
     @PutMapping("/student/{studentRollNumber}")
     public ResponseEntity<?> updateStudent(@PathVariable String studentRollNumber , @RequestBody StudentModel updatedStudent){
-        StudentModel student = studentRepo.findByRollNumber(studentRollNumber).orElse(null);
-        if(student == null){
+        Optional<StudentModel> optionalStudent = studentRepo.findByRollNumber(studentRollNumber);
+        if(optionalStudent.isEmpty()){
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Student Not Found");
         }
 
+        StudentModel student = optionalStudent.get();
         student.setUsername(updatedStudent.getUsername());
-        student.setPassword(updatedStudent.getPassword());
+        if (updatedStudent.getPassword() != null && !updatedStudent.getPassword().isEmpty()) {
+            student.setPassword(passwordEncoder.encode(updatedStudent.getPassword()));
+        }
         student.setCourse(updatedStudent.getCourse());
         student.setBatch(updatedStudent.getBatch());
         student.setCgpa(updatedStudent.getCgpa());
@@ -97,15 +117,17 @@ public class AdminController {
         return ResponseEntity.ok(saved);
     }
 
-    //admin update teacher
     @PutMapping("/teacher/{teacherUsername}")
     public ResponseEntity<?> updateTeacher(@PathVariable String teacherUsername , @RequestBody TeacherModel updatedTeacher){
-        TeacherModel teacher = teacherRepo.findByUsername(teacherUsername).orElse(null);
-
-        if(teacher == null){
+        Optional<TeacherModel> optionalTeacher = teacherRepo.findByUsername(teacherUsername);
+        if(optionalTeacher.isEmpty()){
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Teacher not found");
         }
-        teacher.setPassword(updatedTeacher.getPassword());
+
+        TeacherModel teacher = optionalTeacher.get();
+        if (updatedTeacher.getPassword() != null && !updatedTeacher.getPassword().isEmpty()) {
+            teacher.setPassword(passwordEncoder.encode(updatedTeacher.getPassword()));
+        }
         teacher.setOffice(updatedTeacher.getOffice());
         teacher.setPosition(updatedTeacher.getPosition());
         teacher.setSubject(updatedTeacher.getSubject());
@@ -114,4 +136,21 @@ public class AdminController {
         TeacherModel updated = teacherRepo.save(teacher);
         return ResponseEntity.ok(updated);
     }
+
+    @DeleteMapping("/student/{studentRollNumber}")
+    public ResponseEntity<?> deleteStudent(@PathVariable String studentRollNumber) {
+        return studentRepo.findByRollNumber(studentRollNumber).map(student -> {
+            studentRepo.delete(student);
+            return ResponseEntity.ok("Student deleted successfully");
+        }).orElse(ResponseEntity.status(HttpStatus.NOT_FOUND).body("Student Not Found"));
+    }
+
+    @DeleteMapping("/teacher/{teacherUsername}")
+    public ResponseEntity<?> deleteTeacher(@PathVariable String teacherUsername) {
+        return teacherRepo.findByUsername(teacherUsername).map(teacher -> {
+            teacherRepo.delete(teacher);
+            return ResponseEntity.ok("Teacher deleted successfully");
+        }).orElse(ResponseEntity.status(HttpStatus.NOT_FOUND).body("Teacher not found"));
+    }
 }
+

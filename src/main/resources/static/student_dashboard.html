@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Student Dashboard - SMS</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+</head>
+<body>
+<div class="dashboard-container">
+    <aside class="sidebar">
+        <div class="sidebar-header">
+            <i class="fas fa-university"></i>
+            <h2>SMS Portal</h2>
+        </div>
+        <nav class="sidebar-nav">
+            <a href="#" class="active"><i class="fas fa-tachometer-alt"></i> Dashboard</a>
+        </nav>
+        <div class="sidebar-footer">
+            <button class="logout-btn" onclick="logout()"><i class="fas fa-sign-out-alt"></i> Logout</button>
+        </div>
+    </aside>
+
+    <main class="main-content">
+        <header class="main-header">
+            <h1>Welcome, Student!</h1>
+            <p>Here's a summary of your academic profile.</p>
+        </header>
+        <div id="dashboard-content">
+            <!-- Student data will be loaded here by JavaScript -->
+        </div>
+    </main>
+</div>
+
+<script src="script.js"></script>
+<script>
+    window.onload = function() {
+        const rollNumber = sessionStorage.getItem('username');
+        if (rollNumber) {
+            fetchStudentDashboard(rollNumber);
+        } else {
+            logout(); // If no roll number, redirect to login
+        }
+    };
+</script>
+</body>
+</html>

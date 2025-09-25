@@ -21,6 +21,9 @@ public class StudentController {
 
     @GetMapping("/dashboard/{rollNumber}")
     public ResponseEntity<?> getDashboard(@PathVariable String rollNumber){
+        // --- DEBUG LOGGING ---
+        System.out.println("\n>>> SUCCESS: Request has reached the StudentController for dashboard of: " + rollNumber);
+
         StudentModel student = studentService.getSingleStudent(rollNumber);
 
         if(student == null){
@@ -35,3 +38,4 @@ public class StudentController {
         return ResponseEntity.ok(dashboard);
     }
 }
+

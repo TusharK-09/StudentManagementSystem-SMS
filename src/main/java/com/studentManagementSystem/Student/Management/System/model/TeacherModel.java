@@ -24,14 +24,15 @@ public class TeacherModel {
     private String username;
 
     @NotBlank(message = "Password cannot be empty")
-    @Size(min = 6 , message = "Password length must ne atleast 6")
+    @Size(min = 6, message = "Password length must be at least 6 characters")
     private String password;
 
     @NotBlank(message = "Subject cannot be empty")
     private String subject;
 
     @NotBlank(message = "Position cannot be empty")
-    private String Position;
+    private String position; // Corrected from 'Position' to 'position'
+
     private String office;
 
     //students list assigned to teacher
