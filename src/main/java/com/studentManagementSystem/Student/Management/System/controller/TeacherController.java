@@ -20,7 +20,6 @@ public class TeacherController {
     @Autowired
     private TeacherService teacherService;
 
-    //view of teacher dashboard -> profile + assigned students
     @GetMapping("/dashboard/{username}")
     public ResponseEntity<?> getDashboard(@PathVariable String username) {
         TeacherModel teacher = teacherService.getProfile(username);
@@ -36,19 +35,22 @@ public class TeacherController {
         return ResponseEntity.ok(dashboard);
     }
 
-    //add notes to a student
+    // --- REVISED METHOD WITH TRY-CATCH FOR SPECIFIC ERRORS ---
     @PostMapping("/notes")
-    public ResponseEntity<String> giveNotes(@RequestParam String teacherUsername, @RequestParam String rollNumber, @RequestBody NotesRequest notesRequest) {
-
-        boolean success = teacherService.giveNotes(teacherUsername, rollNumber, notesRequest.getNotes());
-        if (success) {
+    public ResponseEntity<String> giveNotes(@RequestBody NotesRequest notesRequest) {
+        try {
+            teacherService.giveNotes(
+                    notesRequest.getTeacherUsername(),
+                    notesRequest.getRollNumber(),
+                    notesRequest.getNotes()
+            );
             return ResponseEntity.ok("Notes updated successfully.");
-        } else {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                    .body("You are not allowed to update notes for this student.");
+        } catch (RuntimeException e) {
+            // Send the specific error message from the service back to the client
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(e.getMessage());
         }
     }
-    //update marks for own subject
+
     @PostMapping("/marks")
     public ResponseEntity<String> updateMarks(@RequestParam String teacherUsername , @RequestParam String rollNumber , @RequestParam int marks){
         boolean success = teacherService.updateMarks(teacherUsername, rollNumber, marks);
@@ -57,7 +59,8 @@ public class TeacherController {
             return ResponseEntity.ok("Marks updated successfully");
         } else {
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                    .body("Cannot update marks.. either teacher or student not found, or student is not assigned to this teacher.");
+                    .body("Cannot update marks. Either teacher or student not found, or student is not assigned to this teacher.");
         }
     }
 }
+

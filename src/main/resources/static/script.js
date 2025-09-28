@@ -185,7 +185,7 @@ async function openEditTeacherModal(username) {
     document.getElementById('teacherUsername').value = teacher.username;
     document.getElementById('teacherUsername').readOnly = true;
     document.getElementById('teacherSubject').value = teacher.subject;
-    document.getElementById('teacherPosition').value = teacher.position; // Corrected to lowercase 'position'
+    document.getElementById('teacherPosition').value = teacher.position;
     document.getElementById('teacherOffice').value = teacher.office;
     document.getElementById('teacherPassword').required = false;
     openModal('teacherModal');
@@ -220,7 +220,7 @@ async function handleTeacherSubmit(event) {
         username: document.getElementById('teacherUsername').value,
         password: document.getElementById('teacherPassword').value,
         subject: document.getElementById('teacherSubject').value,
-        position: document.getElementById('teacherPosition').value, // Corrected to lowercase 'position'
+        position: document.getElementById('teacherPosition').value,
         office: document.getElementById('teacherOffice').value,
     };
     if (method === 'PUT' && !teacherData.password) delete teacherData.password;
@@ -366,6 +366,15 @@ async function fetchStudentDashboard(rollNumber) {
     if (response.ok) {
         const data = await response.json();
         document.querySelector('.main-header h1').innerText = `Welcome, ${data.Profile.username}!`;
+
+        const marksTable = Object.keys(data.Marks).length > 0
+            ? `<div class="table-responsive"><table>
+                <thead><tr><th>Subject</th><th>Score</th></tr></thead>
+                <tbody>` +
+                Object.entries(data.Marks).map(([subject, score]) => `<tr><td>${subject}</td><td>${score}</td></tr>`).join('') +
+                `</tbody></table></div>`
+            : '<p>No marks have been updated yet.</p>';
+
         const content = `
             <div class="content-card">
                 <h2><i class="fas fa-user-circle"></i> My Profile</h2>
@@ -379,7 +388,7 @@ async function fetchStudentDashboard(rollNumber) {
             </div>
             <div class="content-card">
                  <h2><i class="fas fa-clipboard-list"></i> My Marks</h2>
-                 <pre>${Object.keys(data.Marks).length > 0 ? JSON.stringify(data.Marks, null, 2) : 'No marks updated yet.'}</pre>
+                 ${marksTable}
             </div>
              <div class="content-card">
                  <h2><i class="fas fa-sticky-note"></i> Notes from Teachers</h2>
@@ -403,7 +412,6 @@ async function fetchTeacherDashboard(username) {
         const data = await response.json();
         document.querySelector('.main-header h1').innerText = `Welcome, ${data.Profile.username}!`;
 
-        // Populate Profile Card
         const profileCard = document.getElementById('teacher-profile-card');
         profileCard.innerHTML = `
             <h2><i class="fas fa-user-circle"></i> My Profile</h2>
@@ -415,7 +423,6 @@ async function fetchTeacherDashboard(username) {
             </div>
         `;
 
-        // Populate Assigned Students Table
         const studentsTbody = document.getElementById('assigned-students-tbody');
         studentsTbody.innerHTML = '';
         if (data.Students.length > 0) {
@@ -486,28 +493,27 @@ async function handleMarksSubmit(event) {
 async function handleNotesSubmit(event) {
     event.preventDefault();
     const token = sessionStorage.getItem('token');
-    const teacherUsername = sessionStorage.getItem('username');
-    const rollNumber = document.getElementById('notesStudentRollNumber').value;
-    const notes = document.getElementById('studentNotes').value;
-
-    const params = new URLSearchParams();
-    params.append('teacherUsername', teacherUsername);
-    params.append('rollNumber', rollNumber);
+    const notesData = {
+        teacherUsername: sessionStorage.getItem('username'),
+        rollNumber: document.getElementById('notesStudentRollNumber').value,
+        notes: document.getElementById('studentNotes').value
+    };
 
     const response = await fetch('/sms/teacher/notes', {
         method: 'POST',
         headers: {
             'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json' // Notes are sent in request body
+            'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ notes: notes })
+        body: JSON.stringify(notesData)
     });
 
     if (response.ok) {
         alert('Notes updated successfully!');
         closeModal('notesModal');
     } else {
-        alert('Failed to update notes.');
+        const errorMessage = await response.text();
+        alert(`Failed to update notes: ${errorMessage}`);
     }
 }
 

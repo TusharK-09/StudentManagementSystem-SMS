@@ -11,6 +11,7 @@ import com.studentManagementSystem.Student.Management.System.service.StudentServ
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 public class TeacherService {
@@ -24,72 +25,59 @@ public class TeacherService {
     @Autowired
     private StudentService studentService;
 
-    //teacher profile
     public TeacherModel getProfile(String username){
         return teacherRepo.findByUsername(username).orElse(null);
     }
 
-    //load assigned students
     public List<StudentModel> getAssignedStudents(String teacherId){
         TeacherModel teacher = teacherRepo.findById(teacherId).orElse(null);
         if(teacher == null || teacher.getStudentRollNumbers() == null){
             return List.of();
         }
-        List<StudentModel> students = new ArrayList<>();
-        for (String roll : teacher.getStudentRollNumbers()) {
-            studentRepo.findByRollNumber(roll).ifPresent(students::add);
-        }
-        return students;
+
+        return teacher.getStudentRollNumbers().stream()
+                .map(studentRepo::findByRollNumber)
+                .filter(java.util.Optional::isPresent)
+                .map(java.util.Optional::get)
+                .collect(Collectors.toList());
     }
 
-    // add notes
-    public boolean giveNotes(String teacherUsername, String studentRollNumber, String notes) {
-        TeacherModel teacher = teacherRepo.findByUsername(teacherUsername).orElse(null);
-        if (teacher == null) {
-            return false;
+    // --- REVISED METHOD WITH CLEARER ERROR HANDLING ---
+    public void giveNotes(String teacherUsername, String studentRollNumber, String notes) {
+        TeacherModel teacher = teacherRepo.findByUsername(teacherUsername)
+                .orElseThrow(() -> new RuntimeException("Teacher not found with username: " + teacherUsername));
+
+        if (teacher.getStudentRollNumbers() == null || !teacher.getStudentRollNumbers().contains(studentRollNumber)) {
+            throw new RuntimeException("Forbidden: This student is not assigned to you.");
         }
 
-        // check if the student is assigned to this teacher
-        if (teacher.getStudentRollNumbers() != null && teacher.getStudentRollNumbers().contains(studentRollNumber)) {
-            studentService.addNotes(studentRollNumber,notes);
-            return true; //success on student assigned present in list
-        }
-
-        return false; // student not assigned to teacher
+        studentService.addNotes(studentRollNumber, notes);
     }
 
-    //update marks for corresponding subject
     public boolean updateMarks(String teacherUsername, String rollNumber, int marks) {
         TeacherModel teacher = teacherRepo.findByUsername(teacherUsername).orElse(null);
         StudentModel student = studentRepo.findByRollNumber(rollNumber).orElse(null);
 
-        // check nulls
         if (teacher == null || student == null) {
             return false;
         }
 
-        // check if teacher has assigned students list
         if (teacher.getStudentRollNumbers() == null ||
                 !teacher.getStudentRollNumbers().contains(rollNumber)) {
             return false;
         }
 
-        // make sure student marks map is initialized
         if (student.getMarks() == null) {
             student.setMarks(new HashMap<>());
         }
 
-        // also check teacher has subject
         if (teacher.getSubject() == null) {
             return false;
         }
 
-        // update marks for this teacher's subject
         student.getMarks().put(teacher.getSubject(), marks);
         studentRepo.save(student);
 
         return true;
     }
-
-
 }
