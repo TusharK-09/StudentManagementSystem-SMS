@@ -49,13 +49,12 @@ public class SecurityConfig {
         http
                 .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(auth -> auth
-                        // --- THIS IS THE CRITICAL CHANGE ---
-                        // Allow access to all static frontend files, including the dashboards
+
                         .requestMatchers("/", "/index.html", "/styles.css", "/script.js",
                                 "/student_dashboard.html", "/teacher_dashboard.html", "/admin_dashboard.html").permitAll()
-                        // Allow access to all login endpoints
+
                         .requestMatchers("/sms/student/login", "/sms/teacher/login", "/sms/admin/login").permitAll()
-                        // Allow anonymous creation of users
+
                         .requestMatchers(HttpMethod.POST, "/admin/student", "/admin/teacher").permitAll()
                         // Secure all other data endpoints
                         .requestMatchers("/sms/student/**").hasAuthority("ROLE_STUDENT")
