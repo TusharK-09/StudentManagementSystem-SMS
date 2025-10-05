@@ -22,4 +22,14 @@ A simple **Java-based Student Management System** with a login and separate dash
 * **Frontend:** HTML, CSS, JavaScript (Vanilla)
 * **Build Tool:** Maven
 
-Made by Team - 08 
+## 🏗️ Dependencies Used
+
+* **Spring Security**
+* **Spring Validation**
+* **Spring MongoDB**
+* **JWT Json Web Token for Authentications for RBAC - Role based Access Control**
+* **Lombook**
+* **Spring WEB**
+* **Spring Security Test**
+
+
